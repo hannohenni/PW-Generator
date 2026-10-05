@@ -1,9 +1,8 @@
 // Offline-first: App-Dateien werden beim ersten Besuch gecacht und danach aus dem Cache geliefert.
 // Im Hintergrund wird (wenn online) die neueste Version nachgeladen -> erscheint beim nächsten Start.
-const CACHE = 'passwort-generator-v1';
+const CACHE = 'passwort-generator-v2';
 const ASSETS = [
   './index.html',
-  './styles.css',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
