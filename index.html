@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Passwörter">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="167x167" href="icons/apple-touch-icon-167.png">
+    <title>Lesbarer Passwort-Generator</title>
+    <!-- Minimalistisches SVG-Favicon (Schloss-Symbol passend zum Theme) -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%234f46e5'/%3E%3Crect x='25' y='45' width='50' height='35' rx='8' fill='white'/%3E%3Cpath d='M35 45 V30 A15 15 0 0 1 65 30 V45' fill='none' stroke='white' stroke-width='8' stroke-linecap='round'/%3E%3C/svg%3E">
+    <!-- Tailwind CSS (lokal vorkompiliert, damit die App offline funktioniert) -->
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Sanfter Hintergrundverlauf */
+        body {
+            background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
+            min-height: 100vh;
+            min-height: 100dvh;
+            /* Abstand zu Statusleiste / Rändern (iPad) */
+            padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right))
+                     max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+        }
+        html { -webkit-text-size-adjust: 100%; }
+        button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+        /* Animation für die Bestätigungsmeldung */
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translate(-50%, 20px); }
+            10% { opacity: 1; transform: translate(-50%, 0); }
+            90% { opacity: 1; transform: translate(-50%, 0); }
+            100% { opacity: 0; transform: translate(-50%, -20px); }
+        }
+        .toast-animate {
+            animation: fadeInOut 2.5s ease-in-out forwards;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center font-sans antialiased text-gray-800">
+
+    <!-- Verstecktes Element für sicheres Kopieren -->
+    <span id="copy-helper" style="position: absolute; opacity: 0; pointer-events: none; white-space: pre-wrap;"></span>
+
+    <!-- Hauptcontainer der App -->
+    <div class="bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl p-8 max-w-md w-full border border-white/50">
+        
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-100 text-indigo-600 mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" viewBox="0 0 256 256">
+                    <path d="M208,80H176V56a48,48,0,0,0-96,0V80H48A16,16,0,0,0,32,96V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V96A16,16,0,0,0,208,80ZM96,56a32,32,0,0,1,64,0V80H96ZM208,208H48V96H208V208Zm-68-56a12,12,0,1,1-12-12A12,12,0,0,1,140,152Z"></path>
+                </svg>
+            </div>
+            <h1 class="text-2xl font-extrabold text-gray-800">Passwort Generator</h1>
+        </div>
+
+        <!-- Passwort Anzeige -->
+        <div class="bg-gray-50 border border-gray-200 rounded-xl p-5 mb-6 relative group">
+            <textarea id="password-display" class="w-full bg-transparent resize-y outline-none text-xl md:text-3xl font-mono font-medium text-center break-all text-indigo-900 tracking-tight transition-all duration-200" rows="3" readonly>Lade...</textarea>
+        </div>
+
+        <!-- Optionen -->
+        <div class="mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <label class="flex items-center gap-3 cursor-pointer group">
+                <div class="relative">
+                    <input type="checkbox" id="mode-toggle" class="sr-only" checked>
+                    <div class="block bg-gray-200 w-14 h-8 rounded-full transition-colors group-hover:bg-gray-300 peer-checked:bg-indigo-600" id="toggle-bg"></div>
+                    <div class="dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform duration-300" id="toggle-dot"></div>
+                </div>
+                <span id="mode-text" class="text-sm font-medium text-gray-700">Wort-basiert (Leicht zu merken)</span>
+            </label>
+
+            <!-- Anzahl Input -->
+            <div class="flex items-center gap-2">
+                <label for="num-passwords" class="text-sm font-medium text-gray-700">Anzahl:</label>
+                <input type="number" id="num-passwords" min="1" max="1000" value="1" class="w-20 px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-center font-mono bg-gray-50 text-gray-800 shadow-inner">
+            </div>
+        </div>
+
+        <!-- Aktions-Buttons -->
+        <div class="flex flex-col gap-4">
+            <button id="btn-generate" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-xl transition-all shadow-md hover:shadow-lg active:scale-95 flex items-center justify-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256">
+                    <path d="M224,128a96,96,0,1,1-96-96,8,8,0,0,1,0,16,80,80,0,1,0,80,80,8,8,0,0,1,16,0Zm-34.34-61.66a8,8,0,0,1-11.32,11.32L160,59.31V88a8,8,0,0,1-16,0V40a8,8,0,0,1,8-8h48a8,8,0,0,1,0,16H171.31Z"></path>
+                </svg>
+                Neu Generieren
+            </button>
+            <div class="flex flex-col sm:flex-row gap-4">
+                <button id="btn-copy" class="flex-1 bg-white border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 font-semibold py-3 px-4 rounded-xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256">
+                        <path d="M216,32H88a8,8,0,0,0-8,8V80H40a8,8,0,0,0-8,8V216a8,8,0,0,0,8,8H168a8,8,0,0,0,8-8V176h40a8,8,0,0,0,8-8V40A8,8,0,0,0,216,32ZM160,208H48V96H160Zm48-48H176V88a8,8,0,0,0-8-8H96V48H208Z"></path>
+                    </svg>
+                    Kopieren
+                </button>
+                <button id="btn-export" class="flex-1 bg-white border-2 border-green-600 text-green-600 hover:bg-green-50 font-semibold py-3 px-4 rounded-xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256">
+                        <path d="M224,144v64a16,16,0,0,1-16,16H48a16,16,0,0,1-16-16V144a8,8,0,0,1,16,0v64H208V144a8,8,0,0,1,16,0Zm-101.66,5.66a8,8,0,0,0,11.32,0l40-40a8,8,0,0,0-11.32-11.32L136,124.69V32a8,8,0,0,0-16,0v92.69L93.66,98.34a8,8,0,0,0-11.32,11.32Z"></path>
+                    </svg>
+                    CSV Export
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Benachrichtigung (wird per JS eingeblendet) -->
+    <div id="toast" class="fixed bottom-10 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 opacity-0 pointer-events-none z-50">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#4ade80" viewBox="0 0 256 256">
+            <path d="M173.66,98.34a8,8,0,0,1,0,11.32l-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35A8,8,0,0,1,173.66,98.34ZM224,128A96,96,0,1,1,128,32,96.11,96.11,0,0,1,224,128Zm-16,0a80,80,0,1,0-80,80A80.09,80.09,0,0,0,208,128Z"></path>
+        </svg>
+        Passwort kopiert!
+    </div>
+
+    <script>
+        // DOM Elemente
+        const displayEl = document.getElementById('password-display');
+        const btnGenerate = document.getElementById('btn-generate');
+        const btnCopy = document.getElementById('btn-copy');
+        const btnExport = document.getElementById('btn-export');
+        const numPasswords = document.getElementById('num-passwords');
+        const modeToggle = document.getElementById('mode-toggle');
+        const toggleBg = document.getElementById('toggle-bg');
+        const toggleDot = document.getElementById('toggle-dot');
+        const modeText = document.getElementById('mode-text');
+        const toast = document.getElementById('toast');
+
+        // Liste mit einfachen, deutschen Wörtern für gut lesbare Passwörter
+        const words = [
+            "Apfel", "Baum", "Katze", "Hund", "Maus", "Haus", "Auto", "Sonne", "Mond", "Stern", 
+            "Wolke", "Regen", "Schnee", "Wind", "Feuer", "Wasser", "Erde", "Blume", "Wald", "Berg", 
+            "Tal", "Fluss", "Meer", "See", "Vogel", "Fisch", "Buch", "Tisch", "Stuhl", "Bett", 
+            "Uhr", "Schuh", "Hose", "Hemd", "Brille", "Kaffee", "Tee", "Milch", "Brot", "Käse", 
+            "Birne", "Banane", "Traube", "Licht", "Farbe", "Bild", "Musik", "Spiel", "Reise", "Weg", 
+            "Ziel", "Traum", "Glück", "Liebe", "Freude", "Mut", "Kraft", "Ruhe", "Zeit", "Jahr", 
+            "Tag", "Nacht", "Morgen", "Abend", "Winter", "Sommer", "Herbst", "Lenz", "Gold", "Silber", 
+            "Eisen", "Holz", "Stein", "Sand", "Glas", "Papier", "Stift", "Brief", "Wort", "Satz", 
+            "Zahl", "Kreis", "Punkt", "Linie", "Form", "Klang", "Lied", "Tanz", "Fest", "Gast", 
+            "Freund", "Kind", "Mensch", "Stadt", "Dorf", "Land", "Welt", "Raum", "Planet", "Insel"
+        ];
+
+        // Zeichen für klassische Passwörter (verwechselbare wie l, 1, I, O, 0 entfernt)
+        const safeChars = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789!@#$%&*+?";
+        const symbols = "!@#$%&*+?";
+
+        // Hilfsfunktion: Zufällige Zahl in einem Bereich
+        function getRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        // Hilfsfunktion: Zufälliges Element aus einem Array/String
+        function getRandomItem(collection) {
+            return collection[Math.floor(Math.random() * collection.length)];
+        }
+
+        // Generiert ein wortbasiertes Passwort (z.B. ApfelBaumKatze42!)
+        function generateWordPassword() {
+            const word1 = getRandomItem(words);
+            const word2 = getRandomItem(words);
+            const word3 = getRandomItem(words);
+            const number = getRandomInt(10, 99);
+            const symbol = getRandomItem(symbols);
+            
+            return `${word1}${word2}${word3}${number}${symbol}`;
+        }
+
+        // Generiert ein zeichenbasiertes Passwort ohne verwirrende Zeichen
+        function generateCharPassword() {
+            let password = "";
+            const length = 14; // Gute Länge für hohe Sicherheit
+            for (let i = 0; i < length; i++) {
+                password += getRandomItem(safeChars);
+            }
+            return password;
+        }
+
+        // Hauptfunktion zum Erstellen und Anzeigen
+        function updatePassword() {
+            // Kurze Animation für visuelles Feedback
+            displayEl.style.opacity = '0.5';
+            displayEl.style.transform = 'scale(0.98)';
+            
+            setTimeout(() => {
+                const isWordMode = modeToggle.checked;
+                const count = Math.max(1, parseInt(numPasswords.value) || 1); // Sicherheitscheck, mind. 1
+                
+                let newPasswords = [];
+                for(let i = 0; i < count; i++) {
+                    newPasswords.push(isWordMode ? generateWordPassword() : generateCharPassword());
+                }
+                
+                // Setze die Werte in die Textarea
+                displayEl.value = newPasswords.join('\n');
+                
+                // Formatierung anpassen: Bei mehreren Passwörtern linksbündig machen
+                if (count > 1) {
+                    displayEl.classList.remove('text-center');
+                    displayEl.classList.add('text-left');
+                } else {
+                    displayEl.classList.remove('text-left');
+                    displayEl.classList.add('text-center');
+                }
+                
+                displayEl.style.opacity = '1';
+                displayEl.style.transform = 'scale(1)';
+            }, 150);
+        }
+
+        // Läuft die App als installierte Home-Bildschirm-App?
+        const isStandalone = window.navigator.standalone === true ||
+            window.matchMedia('(display-mode: standalone)').matches;
+
+        // Kopieren über markierten Text im Hilfselement (funktioniert zuverlässig auf iOS/iPadOS)
+        function legacyCopy(text) {
+            const helper = document.getElementById('copy-helper');
+            helper.textContent = text;
+
+            const selection = window.getSelection();
+            const range = document.createRange();
+            let ok = false;
+
+            try {
+                range.selectNodeContents(helper);
+                selection.removeAllRanges();
+                selection.addRange(range);
+                ok = document.execCommand('copy');
+            } catch (err) {
+                console.error('Kopieren fehlgeschlagen', err);
+            } finally {
+                // Unsichtbaren Platzhalter und leere Auswahl beibehalten (verhindert IndexSizeError)
+                helper.textContent = '\u200B';
+                const emptyRange = document.createRange();
+                emptyRange.selectNodeContents(helper);
+                selection.removeAllRanges();
+                selection.addRange(emptyRange);
+            }
+            return ok;
+        }
+
+        // Kopiert den Text in die Zwischenablage
+        function copyPassword() {
+            const textToCopy = displayEl.value;
+            if (!textToCopy) return;
+
+            if (legacyCopy(textToCopy)) {
+                showToast();
+            } else if (navigator.clipboard) {
+                navigator.clipboard.writeText(textToCopy).then(showToast)
+                    .catch(err => console.error('Kopieren fehlgeschlagen', err));
+            }
+        }
+
+        // CSV Export Funktion
+        async function exportCSV() {
+            const passwords = displayEl.value.split('\n').filter(p => p.trim() !== '');
+            if (passwords.length === 0) return;
+
+            // CSV Header und Inhalt zusammenbauen
+            const csvContent = "Passwoerter\n" + passwords.join('\n');
+
+            // Als installierte App (iPad): Teilen-Dialog nutzen (In Dateien sichern, AirDrop, Mail ...),
+            // weil Downloads in Home-Bildschirm-Apps unter iOS/iPadOS unzuverlässig sind.
+            if (isStandalone && navigator.canShare) {
+                try {
+                    const file = new File([csvContent], 'passwoerter.csv', { type: 'text/csv' });
+                    if (navigator.canShare({ files: [file] })) {
+                        await navigator.share({ files: [file], title: 'Passwörter' });
+                        return;
+                    }
+                } catch (err) {
+                    if (err && err.name === 'AbortError') return; // Dialog abgebrochen
+                }
+            }
+
+            // Standard: klassischer Download
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+
+            // Versteckten Link erstellen und Klick simulieren
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'passwoerter.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Zeigt die kleine Bestätigungsmeldung an
+        function showToast() {
+            // Animation zurücksetzen falls schon aktiv
+            toast.classList.remove('toast-animate');
+            void toast.offsetWidth; // Trigger Reflow
+            toast.classList.add('toast-animate');
+        }
+
+        // UI Aktualisierung für den Toggle-Schalter
+        function updateToggleUI() {
+            if (modeToggle.checked) {
+                toggleBg.classList.add('bg-indigo-600');
+                toggleBg.classList.remove('bg-gray-200');
+                toggleDot.style.transform = 'translateX(1.5rem)'; // 24px
+                modeText.textContent = "Wort-basiert (Leicht zu merken)";
+            } else {
+                toggleBg.classList.remove('bg-indigo-600');
+                toggleBg.classList.add('bg-gray-200');
+                toggleDot.style.transform = 'translateX(0)';
+                modeText.textContent = "Zeichen-basiert (Ohne l, I, O, 0)";
+            }
+            updatePassword();
+        }
+
+        // Event Listener verknüpfen
+        btnGenerate.addEventListener('click', updatePassword);
+        btnCopy.addEventListener('click', copyPassword);
+        btnExport.addEventListener('click', exportCSV);
+        modeToggle.addEventListener('change', updateToggleUI);
+        numPasswords.addEventListener('input', updatePassword); // Generiert neu bei Zahlenänderung
+
+        // Initiales Passwort beim Laden der Seite generieren
+        updateToggleUI(); // Setzt UI und generiert erstes Passwort
+
+        // Service Worker für den Offline-Betrieb registrieren
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch(err => console.error('Service Worker Fehler', err));
+            });
+        }
+    </script>
+</body>
+</html>
