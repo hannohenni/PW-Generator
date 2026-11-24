@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
     <link rel="apple-touch-icon" sizes="167x167" href="icons/apple-touch-icon-167.png">
-    <title>Lesbarer Passwort-Generator</title>
+    <title>Passwort-Generator</title>
     <!-- Minimalistisches SVG-Favicon (Schloss-Symbol passend zum Theme) -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%234f46e5'/%3E%3Crect x='25' y='45' width='50' height='35' rx='8' fill='white'/%3E%3Cpath d='M35 45 V30 A15 15 0 0 1 65 30 V45' fill='none' stroke='white' stroke-width='8' stroke-linecap='round'/%3E%3C/svg%3E">
     <style>
@@ -201,19 +201,15 @@
             return password;
         }
 
-        // Geheim: Meme-Modus (Konami-Code). Kinder-/jugendfreundliche Wörter, gleiches Format wie der Wortmodus.
+        // Geheim: Meme-Modus (Konami-Code). Wörter aus den Nominierungen/Top-10-Listen der
+        // Wahl zum "Jugendwort des Jahres" (2011-2026), nur kinder-/jugendfreundliche.
+        // Gleiches Format wie der Wortmodus: DreiWörter + 2 Ziffern (10-99) + Sonderzeichen.
         let memeMode = false;
         const memeWords = [
-            "Skibidi", "Sigma", "Sus", "Yeet", "Bruh", "Doge", "Stonks", "Nyan", "Cheems", "Bonk",
-            "Amogus", "Noob", "Pog", "Oof", "Sheesh", "Bussin", "Cringe", "Slay", "Vibes", "Goofy",
-            "Chonk", "Doggo", "Pupper", "Floof", "Zoomies", "Meme", "Drip", "Glitch", "Pixel", "Gamer",
-            "Respawn", "Epic", "Rickroll", "Trollface", "Wholesome", "Banana", "Capybara", "Axolotl", "Pinguin", "Llama",
-            "Alpaka", "Dino", "Einhorn", "Unicorn", "Drache", "Roboter", "Ninja", "Pizza", "Taco", "Nugget",
-            "Waffel", "Pommes", "Kartoffel", "Spaghetti", "Marshmallow", "Bubbletea", "Donut", "Cookie", "Glitzer", "Turbo",
-            "Mega", "Ultra", "Hyper", "Blitz", "Rakete", "Zauber", "Chaos", "Level", "Loot", "Quest",
-            "Boss", "Lag", "Ping", "Flash", "Disco", "Party", "Selfie", "Emoji", "Hashtag", "Sticker",
-            "Mood", "Lol", "Yolo", "Mochi", "Digga", "Fidget", "Floss", "Dab", "Aura", "Fanum",
-            "Ohio", "Wumms", "Boing", "Zack", "Huch", "Kawaii", "Boba", "Creeper", "Skill", "Speedrun"
+            "Swag", "Fail", "Yolo", "Babo", "Läuft", "Smombie", "Fly", "Napflixen", "Vong", "Stabil",
+            "Ehrenmann", "Ehrenfrau", "Lost", "Cringe", "Sus", "Sheesh", "Goofy", "NPC", "Slay", "SideEye",
+            "Aura", "Schere", "Yurr", "Digga", "Lowkey", "Crazy", "Checkst", "Crashout", "Ragebait", "Peak",
+            "Süper"
         ];
         // Zufällige Wortkombinationen, die zufällig unpassende Buchstabenfolgen ergeben, werden verworfen
         const badBits = ["ass", "sex", "nig", "fag", "tit", "cum", "fuck", "shit", "dick", "nazi", "porn", "anal", "bitch", "slut", "rape", "cock", "boob", "drug", "weed", "piss", "hitler"];
