@@ -69,6 +69,8 @@
         .track::after { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff;
             box-shadow: 0 3px 8px rgba(0,0,0,.25), 0 1px 1px rgba(0,0,0,.2); transition: transform .4s cubic-bezier(.3,1.4,.5,1); }
         .switch input:checked + .track { background: #34c759; }
+        .switch input:disabled { cursor: default; }
+        .switch input:disabled + .track { opacity: .55; }
         .switch input:checked + .track::after { transform: translateX(20px); }
         /* Stepper */
         .stepper { display: flex; align-items: center; background: rgba(120,120,128,.16); border-radius: 99px; overflow: hidden; }
@@ -133,7 +135,7 @@
     </main>
 
     <!-- Toast Benachrichtigung (wird per JS eingeblendet) -->
-    <div id="toast" class="toast glass"><svg width="22" height="22" fill="#34c759" viewBox="0 0 256 256" aria-hidden="true"><path d="M173.66,98.34a8,8,0,0,1,0,11.32l-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35A8,8,0,0,1,173.66,98.34ZM224,128A96,96,0,1,1,128,32,96.11,96.11,0,0,1,224,128Zm-16,0a80,80,0,1,0-80,80A80.09,80.09,0,0,0,208,128Z"/></svg>Passwort kopiert!</div>
+    <div id="toast" class="toast glass"><svg width="22" height="22" fill="#34c759" viewBox="0 0 256 256" aria-hidden="true"><path d="M173.66,98.34a8,8,0,0,1,0,11.32l-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35A8,8,0,0,1,173.66,98.34ZM224,128A96,96,0,1,1,128,32,96.11,96.11,0,0,1,224,128Zm-16,0a80,80,0,1,0-80,80A80.09,80.09,0,0,0,208,128Z"/></svg><span id="toast-text">Passwort kopiert!</span></div>
 
     <script>
         // DOM Elemente
@@ -148,6 +150,7 @@
         const btnPlus = document.getElementById('btn-plus');
         const modeText = document.getElementById('mode-text');
         const toast = document.getElementById('toast');
+        const toastText = document.getElementById('toast-text');
 
         // Liste mit einfachen, deutschen Wörtern für gut lesbare Passwörter
         const words = [
@@ -198,6 +201,39 @@
             return password;
         }
 
+        // Geheim: Meme-Modus (Konami-Code). Kinder-/jugendfreundliche Wörter, gleiches Format wie der Wortmodus.
+        let memeMode = false;
+        const memeWords = [
+            "Skibidi", "Sigma", "Sus", "Yeet", "Bruh", "Doge", "Stonks", "Nyan", "Cheems", "Bonk",
+            "Amogus", "Noob", "Pog", "Oof", "Sheesh", "Bussin", "Cringe", "Slay", "Vibes", "Goofy",
+            "Chonk", "Doggo", "Pupper", "Floof", "Zoomies", "Meme", "Drip", "Glitch", "Pixel", "Gamer",
+            "Respawn", "Epic", "Rickroll", "Trollface", "Wholesome", "Banana", "Capybara", "Axolotl", "Pinguin", "Llama",
+            "Alpaka", "Dino", "Einhorn", "Unicorn", "Drache", "Roboter", "Ninja", "Pizza", "Taco", "Nugget",
+            "Waffel", "Pommes", "Kartoffel", "Spaghetti", "Marshmallow", "Bubbletea", "Donut", "Cookie", "Glitzer", "Turbo",
+            "Mega", "Ultra", "Hyper", "Blitz", "Rakete", "Zauber", "Chaos", "Level", "Loot", "Quest",
+            "Boss", "Lag", "Ping", "Flash", "Disco", "Party", "Selfie", "Emoji", "Hashtag", "Sticker",
+            "Mood", "Lol", "Yolo", "Mochi", "Digga", "Fidget", "Floss", "Dab", "Aura", "Fanum",
+            "Ohio", "Wumms", "Boing", "Zack", "Huch", "Kawaii", "Boba", "Creeper", "Skill", "Speedrun"
+        ];
+        // Zufällige Wortkombinationen, die zufällig unpassende Buchstabenfolgen ergeben, werden verworfen
+        const badBits = ["ass", "sex", "nig", "fag", "tit", "cum", "fuck", "shit", "dick", "nazi", "porn", "anal", "bitch", "slut", "rape", "cock", "boob", "drug", "weed", "piss", "hitler"];
+
+        // Meme-Passwort im selben Format wie der Wortmodus: DreiWörter + 2 Ziffern (10-99) + Sonderzeichen
+        function generateMemePassword() {
+            while (true) {
+                const picks = [];
+                while (picks.length < 3) {
+                    const w = getRandomItem(memeWords);
+                    if (!picks.includes(w)) picks.push(w);
+                }
+                let number;
+                do { number = getRandomInt(10, 99); } while (number === 69);
+                const pw = `${picks.join('')}${number}${getRandomItem(symbols)}`;
+                const low = pw.toLowerCase();
+                if (!badBits.some(b => low.includes(b))) return pw;
+            }
+        }
+
         // Hauptfunktion zum Erstellen und Anzeigen
         function updatePassword() {
             // Kurze Animation für visuelles Feedback
@@ -210,7 +246,7 @@
                 
                 let newPasswords = [];
                 for(let i = 0; i < count; i++) {
-                    newPasswords.push(isWordMode ? generateWordPassword() : generateCharPassword());
+                    newPasswords.push(memeMode ? generateMemePassword() : (isWordMode ? generateWordPassword() : generateCharPassword()));
                 }
                 
                 // Setze die Werte in die Textarea
@@ -305,7 +341,8 @@
         }
 
         // Zeigt die kleine Bestätigungsmeldung an
-        function showToast() {
+        function showToast(msg) {
+            toastText.textContent = (typeof msg === 'string') ? msg : 'Passwort kopiert!';
             // Animation zurücksetzen falls schon aktiv
             toast.classList.remove('toast-animate');
             void toast.offsetWidth; // Trigger Reflow
@@ -314,8 +351,14 @@
 
         // UI Aktualisierung für den Schalter
         function updateToggleUI() {
-            modeText.textContent = modeToggle.checked ? "Wort-basiert" : "Zeichen-basiert";
-            modeSub.textContent = modeToggle.checked ? "Leicht zu merken" : "Ohne l, I, O, 0";
+            modeToggle.disabled = memeMode; // im Meme-Modus nicht umschaltbar
+            if (memeMode) {
+                modeText.textContent = "Meme-Modus 🎮";
+                modeSub.textContent = "Kinderfreundlich";
+            } else {
+                modeText.textContent = modeToggle.checked ? "Wort-basiert" : "Zeichen-basiert";
+                modeSub.textContent = modeToggle.checked ? "Leicht zu merken" : "Ohne l, I, O, 0";
+            }
             updatePassword();
         }
 
@@ -333,6 +376,21 @@
         numPasswords.addEventListener('input', updatePassword); // Generiert neu bei Zahlenänderung
         btnMinus.addEventListener('click', () => stepCount(-1));
         btnPlus.addEventListener('click', () => stepCount(1));
+
+        // Konami-Code (Tastatur): ↑ ↑ ↓ ↓ ← → ← → B A schaltet den Meme-Modus an/aus
+        const konami = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+        let konamiPos = 0;
+        document.addEventListener('keydown', (e) => {
+            if (e.target === numPasswords || e.metaKey || e.ctrlKey || e.altKey) return;
+            const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+            konamiPos = key === konami[konamiPos] ? konamiPos + 1 : (key === konami[0] ? 1 : 0);
+            if (konamiPos === konami.length) {
+                konamiPos = 0;
+                memeMode = !memeMode;
+                updateToggleUI();
+                showToast(memeMode ? '🎮 Meme-Modus aktiviert' : 'Meme-Modus aus');
+            }
+        });
 
         // Initiales Passwort beim Laden der Seite generieren
         updateToggleUI(); // Setzt UI und generiert erstes Passwort
